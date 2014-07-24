@@ -29,29 +29,21 @@
       var $form = $(this),
           numValidatedFields = 0;
 
-      if (options.disableSubmit) $form.find(':submit').attr('disabled', 'true');
+      if (options.disableSubmit) $form.find(':submit').prop('disabled', true);
 
       $form.find('input, textarea').each(function () {
         if (!$(this).data('validate')) return;
         numValidatedFields++;
 
         var validations = $(this).data('validate').split(/\s*,\s*|\s+/),
-            dirty = false,
-            hasBeenBlurredWhileDirty = options.immediateValidation;
+            showErrors = options.immediateValidation;
 
-        var validateField = function (e) {
+        var validateField = function () {
           var val = $(this).val(),
               errors = [],
               i,
               validation,
               res;
-
-          // True iff user has typed in this field, ignoring tab (9) and shift
-          // (16) key presses
-          if (e.type === "keyup" && e.which !== 9 && e.which !== 16) dirty = true;
-
-          // True iff user has blurred this field after it was typed in
-          if (e.type === "blur" && dirty) hasBeenBlurredWhileDirty = true;
 
           for (i=0; i < validations.length; i++) {
             validation = validations[i];
@@ -62,11 +54,12 @@
             }
           }
 
-          if (errors.length > 0 && hasBeenBlurredWhileDirty) {
+          if (errors.length > 0 && showErrors) {
             $(this).addClass(options.errorClass);
             $(this).removeClass(options.validClass);
             if (typeof options.onError === 'function') options.onError.call(this, errors);
           } else if (errors.length === 0) {
+            showErrors = true;
             $(this).addClass(options.validClass);
             $(this).removeClass(options.errorClass);
             if (typeof options.onValid === 'function') options.onValid.call(this);
@@ -74,16 +67,16 @@
 
           if (options.disableSubmit) {
             if ($form.find("." + options.validClass).length == numValidatedFields) {
-              $form.find(':submit').removeAttr('disabled');
+              $form.find(':submit').prop('disabled', false);
             } else {
-              $form.find(':submit').attr('disabled', 'true');
+              $form.find(':submit').prop('disabled', true);
             }
           }
         };
 
+        if (!options.immediateValidation) $(this).blur(function () { showErrors = true; });
         if (options.validateOnBlur) $(this).blur(validateField);
         if (options.validateOnKeyUp) $(this).keyup(validateField);
-        if ($(this).is(':checkbox')) $(this).change(validateField);
         if (options.disableSubmit) {
           $(this).bind('input', validateField);
           $(this).trigger('input');
